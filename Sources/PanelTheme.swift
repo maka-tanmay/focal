@@ -22,7 +22,7 @@ enum PanelStyle: String, CaseIterable, Identifiable {
     }
 
     /// Transparent margin around the tiles: shadow room for the drawn sheets, fade-out room for the glass blur.
-    var sheetInset: CGFloat { self == .glass ? 36 : 18 }
+    var sheetInset: CGFloat { self == .glass ? 44 : 18 }
 }
 
 // MARK: - Palette
