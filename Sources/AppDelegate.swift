@@ -65,9 +65,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     // MARK: - Settings window (regular app with a Dock icon only while it's open)
 
     private func makeSettingsWindow() -> NSWindow {
-        let w = NSWindow(contentRect: .zero, styleMask: [.titled, .closable, .miniaturizable], backing: .buffered, defer: false)
+        let tabs = NSTabViewController()
+        tabs.tabStyle = .toolbar
+        let pages: [(String, String, AnyView)] = [
+            ("Welcome", "sparkles", AnyView(WelcomeTab(overlay: overlay, prefs: prefs))),
+            ("General", "slider.horizontal.3", AnyView(GeneralTab(overlay: overlay))),
+            ("Icon", "circle.lefthalf.filled", AnyView(IconTab(prefs: prefs))),
+            ("Shortcuts", "keyboard", AnyView(ShortcutsTab(prefs: prefs))),
+            ("About", "info.circle", AnyView(AboutTab())),
+        ]
+        for (title, symbol, view) in pages {
+            let host = NSHostingController(rootView: view)
+            host.sizingOptions = [.preferredContentSize]
+            let item = NSTabViewItem(viewController: host)
+            item.label = title
+            item.image = NSImage(systemSymbolName: symbol, accessibilityDescription: title)
+            tabs.addTabViewItem(item)
+        }
+        let w = NSWindow(contentViewController: tabs)
+        w.styleMask = [.titled, .closable, .miniaturizable]
+        w.toolbarStyle = .preference
         w.title = "Focal"
-        w.contentViewController = NSHostingController(rootView: SettingsView(overlay: overlay, prefs: prefs))
         w.isReleasedWhenClosed = false
         w.delegate = self
         w.center()
