@@ -157,6 +157,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         backdrop.material = .popover
         backdrop.blendingMode = .behindWindow
         backdrop.state = .active
+        backdrop.alphaValue = 0.55 // mostly blur, barely any tint, so it never reads as a sheet
         backdrop.autoresizingMask = [.width, .height]
         container.addSubview(backdrop)
         container.addSubview(host)
@@ -218,16 +219,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         backdrop.maskImage = featheredMask(size: size)
     }
 
-    /// Opaque rounded region that dissolves over ~16 pt, so the blur has no visible edge.
+    /// Rounded region that dissolves over ~30 pt on every side: a soft halo of blur, no edge to see.
     private func featheredMask(size: NSSize) -> NSImage {
         NSImage(size: size, flipped: false) { rect in
             let shadow = NSShadow()
-            shadow.shadowBlurRadius = 16
+            shadow.shadowBlurRadius = 30
             shadow.shadowOffset = .zero
             shadow.shadowColor = .black
             shadow.set()
             NSColor.black.setFill()
-            NSBezierPath(roundedRect: rect.insetBy(dx: 18, dy: 18), xRadius: 28, yRadius: 28).fill()
+            NSBezierPath(roundedRect: rect.insetBy(dx: 30, dy: 30), xRadius: 30, yRadius: 30).fill()
             return true
         }
     }
