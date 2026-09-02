@@ -19,7 +19,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var bag = Set<AnyCancellable>()
     private var monitors: [Any] = []
     private lazy var host = NSHostingView(
-        rootView: PanelView(overlay: overlay) { [weak self] in
+        rootView: PanelView(overlay: overlay, prefs: prefs) { [weak self] in
             self?.closePanel()
             self?.showSettings()
         }
@@ -34,8 +34,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     func applicationDidFinishLaunching(_: Notification) {
         overlay.$enabled.sink { [weak self] on in self?.updateIcon(on) }.store(in: &bag)
-        prefs.$iconStyle.dropFirst().sink { [weak self] _ in self?.updateIcon(self?.overlay.enabled ?? false) }.store(in: &bag)
-        prefs.$hotkey.dropFirst().sink { [weak self] _ in self?.registerHotKey() }.store(in: &bag)
+        // @Published emits before the property changes, so always use the emitted value, never re-read prefs.
+        prefs.$iconStyle.dropFirst().sink { [weak self] style in
+            guard let self else { return }
+            self.updateIcon(self.overlay.enabled, style: style)
+        }.store(in: &bag)
+        prefs.$hotkey.dropFirst().sink { [weak self] hotkey in self?.registerHotKey(hotkey) }.store(in: &bag)
         overlay.enabled = defaults.object(forKey: "enabled") as? Bool ?? true
         // Content grows/shrinks (pins, tip): keep the panel fitted.
         overlay.objectWillChange
@@ -142,38 +146,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         p.animationBehavior = .utilityWindow
 
         host.translatesAutoresizingMaskIntoConstraints = false
-        let glass: NSView
+        let container: NSView
         if #available(macOS 26.0, *) {
-            let g = NSGlassEffectView()
-            g.cornerRadius = 18
-            g.contentView = host
-            glass = g
+            let glass = NSGlassEffectView()
+            glass.cornerRadius = 22
+            glass.contentView = host
+            container = glass
         } else {
             let v = NSVisualEffectView()
             v.material = .popover
             v.blendingMode = .behindWindow
             v.state = .active
+            v.wantsLayer = true
+            v.layer?.cornerRadius = 22
+            v.layer?.cornerCurve = .continuous
+            v.layer?.masksToBounds = true
             v.addSubview(host)
-            glass = v
+            container = v
         }
-        // Clip everything to macOS's continuous (squircle) corner curve.
-        let clip = NSView()
-        clip.wantsLayer = true
-        clip.layer?.cornerRadius = 18
-        clip.layer?.cornerCurve = .continuous
-        clip.layer?.masksToBounds = true
-        glass.translatesAutoresizingMaskIntoConstraints = false
-        clip.addSubview(glass)
-        p.contentView = clip
+        p.contentView = container
         NSLayoutConstraint.activate([
-            glass.leadingAnchor.constraint(equalTo: clip.leadingAnchor),
-            glass.trailingAnchor.constraint(equalTo: clip.trailingAnchor),
-            glass.topAnchor.constraint(equalTo: clip.topAnchor),
-            glass.bottomAnchor.constraint(equalTo: clip.bottomAnchor),
-            host.leadingAnchor.constraint(equalTo: glass.leadingAnchor),
-            host.trailingAnchor.constraint(equalTo: glass.trailingAnchor),
-            host.topAnchor.constraint(equalTo: glass.topAnchor),
-            host.bottomAnchor.constraint(equalTo: glass.bottomAnchor),
+            host.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            host.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            host.topAnchor.constraint(equalTo: container.topAnchor),
+            host.bottomAnchor.constraint(equalTo: container.bottomAnchor),
         ])
 
         // Dismiss like a system panel: click anywhere else, Escape, or losing key status.
@@ -226,8 +222,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     // MARK: - Menu bar icon
 
-    private func updateIcon(_ on: Bool) {
-        item.button?.image = prefs.iconStyle.image(on: on)
+    private func updateIcon(_ on: Bool, style: IconStyle? = nil) {
+        item.button?.image = (style ?? prefs.iconStyle).image(on: on)
         item.button?.toolTip = on ? "Focal is blurring. Click for options, ⌥-click to pause."
                                   : "Focal is paused. Click for options, ⌥-click to resume."
     }
@@ -236,7 +232,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     private var handlerInstalled = false
 
-    private func registerHotKey() {
+    private func registerHotKey(_ hotkey: Hotkey? = nil) {
+        let hotkey = hotkey ?? prefs.hotkey
         if !handlerInstalled {
             var spec = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
             InstallEventHandler(GetApplicationEventTarget(), { _, _, _ in
@@ -246,7 +243,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             handlerInstalled = true
         }
         if let old = hotKeyRef { UnregisterEventHotKey(old); hotKeyRef = nil }
-        RegisterEventHotKey(prefs.hotkey.keyCode, prefs.hotkey.modifiers,
+        RegisterEventHotKey(hotkey.keyCode, hotkey.modifiers,
                             EventHotKeyID(signature: 0x464F_434C, id: 1), // "FOCL"
                             GetApplicationEventTarget(), 0, &hotKeyRef)
     }

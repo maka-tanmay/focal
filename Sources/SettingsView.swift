@@ -34,51 +34,46 @@ struct WelcomeTab: View {
     }
 }
 
-/// Animated mini desktop: three windows, the front one cycles, the others blur. Shows where the icon lives.
+/// Animated mini desktop. A scripted loop: the cursor clicks each window in turn (it stays sharp, the rest
+/// blur), then goes up to the menu bar icon and opens the quick panel. Stops under Reduce Motion.
 struct HowItWorksView: View {
     let icon: IconStyle
     @State private var active = 0
+    @State private var cursor = CGSize(width: -60, height: 70)
+    @State private var pressed = false
+    @State private var panelShown = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    private let timer = Timer.publish(every: 2.4, on: .main, in: .common).autoconnect()
 
     private let apps: [(name: String, symbol: String, tint: Color)] = [
-        ("Notes", "note.text", .yellow), ("Safari", "safari", .blue), ("Mail", "envelope", .cyan),
+        ("Notes", "note.text", .yellow), ("Safari", "safari", .blue), ("Mail", "envelope.fill", .cyan),
     ]
-    private let positions: [CGSize] = [CGSize(width: -120, height: 20), CGSize(width: 40, height: -10), CGSize(width: 150, height: 40)]
+    private let positions: [CGSize] = [CGSize(width: -130, height: 10), CGSize(width: 30, height: -18), CGSize(width: 150, height: 30)]
+    private let iconOffset = CGSize(width: 150, height: -128)
 
     var body: some View {
-        ZStack(alignment: .top) {
+        ZStack {
             RoundedRectangle(cornerRadius: 14)
-                .fill(LinearGradient(colors: [Color(red: 0.36, green: 0.42, blue: 0.62), Color(red: 0.16, green: 0.18, blue: 0.30)],
+                .fill(LinearGradient(colors: [Color(red: 0.42, green: 0.48, blue: 0.70), Color(red: 0.14, green: 0.16, blue: 0.28)],
                                      startPoint: .topLeading, endPoint: .bottomTrailing))
 
             // Windows
-            ZStack {
-                ForEach(0..<3, id: \.self) { i in
-                    miniWindow(apps[i])
-                        .offset(positions[i])
-                        .blur(radius: i == active ? 0 : 5)
-                        .opacity(i == active ? 1 : 0.7)
-                        .scaleEffect(i == active ? 1 : 0.97)
-                        .zIndex(i == active ? 1 : 0)
-                        .shadow(color: .black.opacity(i == active ? 0.35 : 0), radius: 14, y: 8)
-                }
-                Image(systemName: "cursorarrow")
-                    .font(.system(size: 18))
-                    .foregroundStyle(.white)
-                    .shadow(radius: 2)
-                    .offset(x: positions[active].width + 40, y: positions[active].height + 30)
-                    .zIndex(2)
+            ForEach(0..<3, id: \.self) { i in
+                miniWindow(i)
+                    .offset(positions[i])
+                    .blur(radius: i == active ? 0 : 5)
+                    .opacity(i == active ? 1 : 0.7)
+                    .scaleEffect(i == active ? 1 : 0.97)
+                    .zIndex(i == active ? 1 : 0)
+                    .shadow(color: .black.opacity(i == active ? 0.4 : 0), radius: 16, y: 10)
             }
-            .padding(.top, 60)
 
-            // Menu bar with the Focal icon and a callout
-            VStack(alignment: .trailing, spacing: 6) {
+            // Menu bar
+            VStack {
                 HStack(spacing: 14) {
                     Spacer()
-                    Image(nsImage: icon.image(on: true)).renderingMode(.template)
-                        .padding(4)
-                        .background(Circle().fill(Color.accentColor.opacity(0.35)))
+                    Image(nsImage: icon.image(on: true)).renderingMode(.template).resizable().frame(width: 16, height: 16)
+                        .padding(3)
+                        .background(Circle().fill(Color.accentColor.opacity(panelShown ? 0.9 : 0.35)))
                     Image(systemName: "wifi")
                     Image(systemName: "battery.75percent")
                     Text("9:41").monospacedDigit()
@@ -88,36 +83,114 @@ struct HowItWorksView: View {
                 .padding(.horizontal, 12)
                 .frame(height: 24)
                 .background(.white.opacity(0.18))
-                HStack(spacing: 4) {
-                    Text("Focal lives here").font(.caption.weight(.medium))
-                    Image(systemName: "arrow.up").font(.caption2.weight(.bold))
-                }
-                .foregroundStyle(.white)
-                .padding(.horizontal, 8).padding(.vertical, 4)
-                .background(Capsule().fill(Color.accentColor))
-                .padding(.trailing, 118)
+                Spacer()
             }
 
+            // Quick panel dropping from the icon
+            if panelShown {
+                miniPanel
+                    .offset(x: 120, y: -70)
+                    .transition(.opacity.combined(with: .offset(y: -8)))
+                    .zIndex(3)
+            }
+
+            // Dock
             VStack {
                 Spacer()
-                Text("Only \(apps[active].name) stays sharp")
-                    .font(.caption).foregroundStyle(.white.opacity(0.85))
+                HStack(spacing: 8) {
+                    ForEach([Color.blue, .yellow, .cyan, .green, .purple], id: \.self) { c in
+                        RoundedRectangle(cornerRadius: 5).fill(c.opacity(0.9)).frame(width: 18, height: 18)
+                    }
+                }
+                .padding(.horizontal, 10).padding(.vertical, 6)
+                .background(RoundedRectangle(cornerRadius: 12).fill(.white.opacity(0.2)))
+                .padding(.bottom, 10)
+            }
+
+            // Cursor
+            Image(systemName: "cursorarrow")
+                .font(.system(size: 18))
+                .foregroundStyle(.white)
+                .shadow(color: .black.opacity(0.6), radius: 2, y: 1)
+                .scaleEffect(pressed ? 0.8 : 1)
+                .offset(cursor)
+                .zIndex(4)
+
+            // Caption
+            VStack {
+                Spacer()
+                Text(panelShown ? "The quick panel: on/off, strength, pins" : "Only \(apps[active].name) stays sharp")
+                    .font(.caption).foregroundStyle(.white.opacity(0.9))
                     .padding(.horizontal, 10).padding(.vertical, 5)
-                    .background(Capsule().fill(.black.opacity(0.35)))
-                    .padding(.bottom, 12)
+                    .background(Capsule().fill(.black.opacity(0.4)))
+                    .padding(.bottom, 46)
             }
         }
-        .frame(width: 512, height: 300)
+        .frame(width: 512, height: 320)
         .clipShape(RoundedRectangle(cornerRadius: 14))
-        .onReceive(timer) { _ in
-            guard !reduceMotion else { return }
-            withAnimation(.easeInOut(duration: 0.6)) { active = (active + 1) % 3 }
-        }
-        .accessibilityLabel("Three windows. The one you click stays sharp; the others blur.")
+        .task { await play() }
+        .accessibilityLabel("Three windows. The one you click stays sharp; the others blur. The menu bar icon opens the quick panel.")
     }
 
-    private func miniWindow(_ app: (name: String, symbol: String, tint: Color)) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
+    private func play() async {
+        guard !reduceMotion else { return }
+        let sleep = { (s: Double) in try? await Task.sleep(nanoseconds: UInt64(s * 1_000_000_000)) }
+        while !Task.isCancelled {
+            for i in 0..<3 {
+                withAnimation(.easeInOut(duration: 0.5)) {
+                    cursor = CGSize(width: positions[i].width + 30, height: positions[i].height + 24)
+                }
+                await sleep(0.6)
+                withAnimation(.easeOut(duration: 0.1)) { pressed = true }
+                await sleep(0.12)
+                withAnimation(.easeInOut(duration: 0.5)) { pressed = false; active = i }
+                await sleep(1.5)
+            }
+            withAnimation(.easeInOut(duration: 0.6)) { cursor = CGSize(width: iconOffset.width, height: iconOffset.height + 10) }
+            await sleep(0.7)
+            withAnimation(.easeOut(duration: 0.1)) { pressed = true }
+            await sleep(0.12)
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) { pressed = false; panelShown = true }
+            await sleep(2.6)
+            withAnimation(.easeIn(duration: 0.2)) { panelShown = false }
+            await sleep(0.5)
+        }
+    }
+
+    private var miniPanel: some View {
+        VStack(spacing: 6) {
+            HStack(spacing: 8) {
+                Image(nsImage: icon.image(on: true)).renderingMode(.template).resizable().frame(width: 12, height: 12)
+                    .foregroundStyle(.white)
+                    .frame(width: 22, height: 22)
+                    .background(Circle().fill(Color.accentColor))
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Focal").font(.system(size: 9, weight: .semibold))
+                    Text("On").font(.system(size: 7)).foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+            .padding(6)
+            .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.08)))
+            HStack(spacing: 6) {
+                Image(systemName: "circle.lefthalf.filled").font(.system(size: 8)).foregroundStyle(.secondary)
+                Capsule().fill(Color.primary.opacity(0.15)).frame(height: 4)
+                    .overlay(alignment: .leading) { Capsule().fill(Color.accentColor).frame(width: 60, height: 4) }
+                Text("80%").font(.system(size: 7)).foregroundStyle(.secondary)
+            }
+            .padding(6)
+            .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.08)))
+        }
+        .padding(6)
+        .frame(width: 130)
+        .background(RoundedRectangle(cornerRadius: 12).fill(.regularMaterial))
+        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(.white.opacity(0.35)))
+        .shadow(color: .black.opacity(0.35), radius: 12, y: 6)
+    }
+
+    private func miniWindow(_ i: Int) -> some View {
+        let app = apps[i]
+        return VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 6) {
                 ForEach([Color.red, .yellow, .green], id: \.self) { c in Circle().fill(c).frame(width: 7, height: 7) }
                 Spacer()
@@ -126,10 +199,34 @@ struct HowItWorksView: View {
             }
             .padding(.horizontal, 8).frame(height: 22)
             .background(Color(nsColor: .windowBackgroundColor))
-            VStack(alignment: .leading, spacing: 6) {
-                RoundedRectangle(cornerRadius: 2).fill(app.tint.opacity(0.8)).frame(width: 60, height: 8)
-                ForEach([0.9, 0.7, 0.8, 0.5], id: \.self) { f in
-                    RoundedRectangle(cornerRadius: 2).fill(Color.secondary.opacity(0.3)).frame(width: 150 * f, height: 5)
+            Group {
+                switch i {
+                case 0: // Notes: a title and ruled lines
+                    VStack(alignment: .leading, spacing: 7) {
+                        RoundedRectangle(cornerRadius: 2).fill(app.tint.opacity(0.9)).frame(width: 70, height: 8)
+                        ForEach([0.9, 0.75, 0.85, 0.6], id: \.self) { f in
+                            RoundedRectangle(cornerRadius: 2).fill(Color.secondary.opacity(0.3)).frame(width: 150 * f, height: 5)
+                        }
+                    }
+                case 1: // Safari: address bar and image blocks
+                    VStack(alignment: .leading, spacing: 8) {
+                        Capsule().fill(Color.secondary.opacity(0.2)).frame(height: 10)
+                        HStack(spacing: 6) {
+                            RoundedRectangle(cornerRadius: 4).fill(app.tint.opacity(0.6)).frame(height: 40)
+                            RoundedRectangle(cornerRadius: 4).fill(app.tint.opacity(0.35)).frame(height: 40)
+                        }
+                        RoundedRectangle(cornerRadius: 2).fill(Color.secondary.opacity(0.3)).frame(width: 110, height: 5)
+                    }
+                default: // Mail: list rows
+                    VStack(alignment: .leading, spacing: 6) {
+                        ForEach(0..<4, id: \.self) { r in
+                            HStack(spacing: 6) {
+                                Circle().fill(r == 0 ? app.tint : Color.clear).frame(width: 5, height: 5)
+                                RoundedRectangle(cornerRadius: 2).fill(Color.secondary.opacity(r == 0 ? 0.5 : 0.3)).frame(width: 60, height: 5)
+                                RoundedRectangle(cornerRadius: 2).fill(Color.secondary.opacity(0.2)).frame(width: 70, height: 5)
+                            }
+                        }
+                    }
                 }
             }
             .padding(10)
