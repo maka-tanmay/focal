@@ -157,7 +157,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         backdrop.material = .popover
         backdrop.blendingMode = .behindWindow
         backdrop.state = .active
-        backdrop.alphaValue = 0.38 // a little blur, almost no tint: over black the region should all but vanish
         backdrop.autoresizingMask = [.width, .height]
         container.addSubview(backdrop)
         container.addSubview(host)
@@ -219,20 +218,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         backdrop.maskImage = featheredMask(size: size)
     }
 
-    /// Rounded region that dissolves over ~40 pt on every side: a soft halo of blur, no edge to see.
+    /// Opaque rounded region that dissolves over ~16 pt, so the blur has no visible edge.
     private func featheredMask(size: NSSize) -> NSImage {
-        let mask = NSImage(size: size, flipped: false) { rect in
+        NSImage(size: size, flipped: false) { rect in
             let shadow = NSShadow()
-            shadow.shadowBlurRadius = 40
+            shadow.shadowBlurRadius = 16
             shadow.shadowOffset = .zero
             shadow.shadowColor = .black
             shadow.set()
             NSColor.black.setFill()
-            NSBezierPath(roundedRect: rect.insetBy(dx: 40, dy: 40), xRadius: 32, yRadius: 32).fill()
+            NSBezierPath(roundedRect: rect.insetBy(dx: 18, dy: 18), xRadius: 28, yRadius: 28).fill()
             return true
         }
-        mask.resizingMode = .stretch
-        return mask
     }
 
     // MARK: - Menu bar icon
