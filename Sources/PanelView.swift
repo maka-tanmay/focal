@@ -1,77 +1,104 @@
 import SwiftUI
 
-/// The menu bar dropdown, Control Center style: toggle tile, thick strength slider, pins, footer.
+/// The menu bar dropdown, built like Control Center: a dark glass sheet holding individual glass tiles.
 struct PanelView: View {
     @ObservedObject var overlay: Overlay
     @ObservedObject var prefs: Prefs
     let openSettings: () -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
-        VStack(spacing: 8) {
+        tiles
+            .padding(12)
+            .frame(width: 300)
+    }
+
+    @ViewBuilder private var tiles: some View {
+        if #available(macOS 26.0, *) {
+            GlassEffectContainer(spacing: 10) { stack }
+        } else {
+            stack
+        }
+    }
+
+    private var stack: some View {
+        VStack(spacing: 10) {
             toggleTile
             strengthTile
             if !overlay.pinned.isEmpty || candidate != nil { pinsTile }
-            HStack {
+            HStack(spacing: 10) {
                 Button("Settings…", action: openSettings).panelButton()
-                Spacer()
                 Button("Quit") { NSApp.terminate(nil) }.panelButton()
             }
-            .padding(.top, 4)
+            .padding(.top, 2)
         }
-        .padding(10)
-        .frame(width: 300)
     }
 
     // MARK: Tiles
 
+    /// Capsule like the Wi-Fi tile: accent circle when on, title, state.
     private var toggleTile: some View {
         Button {
             withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) { overlay.enabled.toggle() }
         } label: {
-            HStack(spacing: 10) {
+            HStack(spacing: 12) {
                 Image(nsImage: prefs.iconStyle.image(on: true))
                     .renderingMode(.template).resizable().interpolation(.high)
-                    .frame(width: 16, height: 16)
-                    .foregroundStyle(overlay.enabled ? .white : .primary)
-                    .frame(width: 32, height: 32)
-                    .background(Circle().fill(overlay.enabled ? Color.accentColor : tileFill))
+                    .frame(width: 18, height: 18)
+                    .foregroundStyle(.white)
+                    .frame(width: 40, height: 40)
+                    .background(Circle().fill(overlay.enabled ? Color.accentColor : Color.white.opacity(0.18)))
                 VStack(alignment: .leading, spacing: 1) {
                     Text("Focal").font(.system(size: 13, weight: .semibold))
-                    Text(overlay.enabled ? "On" : "Paused").font(.system(size: 11)).foregroundStyle(.secondary)
+                    Text(overlay.enabled ? "On" : "Off").font(.system(size: 12)).foregroundStyle(.secondary)
                 }
                 Spacer(minLength: 0)
             }
-            .padding(10)
+            .padding(.horizontal, 10).padding(.vertical, 9)
             .frame(maxWidth: .infinity)
-            .contentShape(RoundedRectangle(cornerRadius: 14))
+            .contentShape(Capsule())
         }
         .buttonStyle(.plain)
-        .background(RoundedRectangle(cornerRadius: 14).fill(tileFill))
+        .glassTile(Capsule(), interactive: true)
         .help(overlay.enabled ? "Click to pause" : "Click to resume")
-        .accessibilityLabel(overlay.enabled ? "Focal is on. Pause" : "Focal is paused. Resume")
+        .accessibilityLabel(overlay.enabled ? "Focal is on. Pause" : "Focal is off. Resume")
     }
 
+    /// Like the Display tile: title, thin white slider between a small and a large glyph.
     private var strengthTile: some View {
-        VStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text("Strength").font(.system(size: 13, weight: .semibold))
                 Spacer()
                 Text(overlay.auto ? "Auto" : "\(Int(overlay.strength * 100))%")
-                    .font(.system(size: 11)).foregroundStyle(.secondary).monospacedDigit()
-                Toggle("Auto", isOn: $overlay.auto).toggleStyle(.button).controlSize(.mini).panelButton()
+                    .font(.system(size: 12)).foregroundStyle(.secondary).monospacedDigit()
             }
-            ThickSlider(value: $overlay.strength, range: 0.2...1, disabled: overlay.auto)
+            HStack(spacing: 10) {
+                Image(systemName: "circle.lefthalf.filled").font(.system(size: 11))
+                ThinSlider(value: $overlay.strength, range: 0.2...1, disabled: overlay.auto)
+                Image(systemName: "circle.lefthalf.filled").font(.system(size: 17))
+                Button {
+                    withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) { overlay.auto.toggle() }
+                } label: {
+                    Image(systemName: "wand.and.stars")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.white)
+                        .frame(width: 28, height: 28)
+                        .background(Circle().fill(overlay.auto ? Color.accentColor : Color.white.opacity(0.18)))
+                }
+                .buttonStyle(.plain)
+                .help(overlay.auto ? "Auto strength is on. Click to set it yourself." : "Let Focal pick the strength")
+                .accessibilityLabel("Auto strength")
+                .accessibilityAddTraits(overlay.auto ? .isSelected : [])
+            }
         }
-        .padding(10)
-        .background(RoundedRectangle(cornerRadius: 14).fill(tileFill))
-        .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: overlay.auto)
+        .padding(.horizontal, 14).padding(.vertical, 12)
+        .glassTile(RoundedRectangle(cornerRadius: 20))
     }
 
     private var pinsTile: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Keep sharp").font(.system(size: 11)).foregroundStyle(.secondary)
+            Text("Keep sharp").font(.system(size: 13, weight: .semibold))
             ForEach(overlay.pinned, id: \.id) { ref in
                 row(ref) { Button("Unpin") { pin(ref) }.controlSize(.small).panelButton() }
             }
@@ -79,11 +106,10 @@ struct PanelView: View {
                 row(ref) { Button("Pin") { pin(ref) }.controlSize(.small).panelButton(prominent: true) }
             }
         }
-        .padding(10)
-        .background(RoundedRectangle(cornerRadius: 14).fill(tileFill))
+        .padding(.horizontal, 14).padding(.vertical, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassTile(RoundedRectangle(cornerRadius: 20))
     }
-
-    private var tileFill: Color { scheme == .dark ? .white.opacity(0.12) : .black.opacity(0.06) }
 
     private var candidate: WindowRef? {
         guard let ref = overlay.active, !overlay.pinned.contains(ref), overlay.pinned.count < 2 else { return nil }
@@ -92,7 +118,7 @@ struct PanelView: View {
 
     private func row<Action: View>(_ ref: WindowRef, @ViewBuilder action: () -> Action) -> some View {
         HStack(spacing: 8) {
-            Image(nsImage: ref.icon).resizable().frame(width: 20, height: 20)
+            Image(nsImage: ref.icon).resizable().frame(width: 22, height: 22)
             Text(ref.name).font(.system(size: 13)).lineLimit(1)
             Spacer(minLength: 8)
             action()
@@ -105,33 +131,29 @@ struct PanelView: View {
     }
 }
 
-/// Control Center's brightness-style slider: a thick capsule with the glyph riding inside the fill.
-struct ThickSlider: View {
+/// Control Center's thin slider: white fill on a translucent track, no knob, drag anywhere.
+struct ThinSlider: View {
     @Binding var value: CGFloat
     let range: ClosedRange<CGFloat>
     let disabled: Bool
-    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
         GeometryReader { geo in
             let span = range.upperBound - range.lowerBound
             let fraction = (value - range.lowerBound) / span
             ZStack(alignment: .leading) {
-                Capsule().fill(scheme == .dark ? Color.black.opacity(0.35) : Color.black.opacity(0.1))
-                Capsule().fill(Color.white).frame(width: max(28, geo.size.width * fraction))
-                Image(systemName: "circle.lefthalf.filled")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.black.opacity(0.75))
-                    .padding(.leading, 8)
+                Capsule().fill(Color.white.opacity(0.22)).frame(height: 5)
+                Capsule().fill(Color.white).frame(width: max(5, geo.size.width * fraction), height: 5)
             }
-            .contentShape(Capsule())
+            .frame(height: geo.size.height)
+            .contentShape(Rectangle())
             .gesture(DragGesture(minimumDistance: 0).onChanged { g in
                 let f = min(max(g.location.x / geo.size.width, 0), 1)
                 value = range.lowerBound + f * span
             })
         }
-        .frame(height: 28)
-        .opacity(disabled ? 0.4 : 1)
+        .frame(height: 24)
+        .opacity(disabled ? 0.35 : 1)
         .allowsHitTesting(!disabled)
         .accessibilityElement()
         .accessibilityLabel("Strength")
@@ -144,6 +166,16 @@ struct ThickSlider: View {
 }
 
 private extension View {
+    /// One Control Center tile: Liquid Glass with its own rim on macOS 26, thin material with a rim elsewhere.
+    @ViewBuilder func glassTile<S: InsettableShape>(_ shape: S, interactive: Bool = false) -> some View {
+        if #available(macOS 26.0, *) {
+            glassEffect(interactive ? .regular.interactive() : .regular, in: shape)
+        } else {
+            background(.ultraThinMaterial, in: shape)
+                .overlay(shape.strokeBorder(.white.opacity(0.18)))
+        }
+    }
+
     /// Liquid Glass buttons on macOS 26, bordered elsewhere.
     @ViewBuilder func panelButton(prominent: Bool = false) -> some View {
         if #available(macOS 26.0, *) {
