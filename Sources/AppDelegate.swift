@@ -151,6 +151,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             // Regular glass: heavy blur behind the sheet so text and windows underneath don't bleed through.
             let glass = NSGlassEffectView()
             glass.style = .regular
+            glass.tintColor = NSColor.white.withAlphaComponent(0.06) // lift the sheet toward Control Center's grey
             glass.cornerRadius = 22
             glass.contentView = host
             container = glass
