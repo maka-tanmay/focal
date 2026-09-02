@@ -30,6 +30,15 @@ The first time Focal launches it opens its panel and explains itself. After that
 - **Also keep sharp** pins up to two extra windows that stay clear next to the active one. Open the panel while the window you want is in front and click "Keep … window sharp".
 - Full-screen apps are left alone. Works across multiple displays and Spaces.
 
+## Screenshots
+
+The panel drops down from the menu bar like a Control Center panel, in your system's light or dark look.
+
+<p align="center">
+  <img src="Design/panel-light.png" alt="Focal panel, light" width="340">
+  <img src="Design/panel-dark.png" alt="Focal panel, dark" width="340">
+</p>
+
 ## How it works
 
 One borderless window per display holds an `NSVisualEffectView` with behind-window blending. Every 150 ms Focal reads the on-screen window list, finds the frontmost app's frontmost normal window, and orders the blur window directly beneath it. Everything above stays sharp, everything below gets blurred. That's the whole trick, in about 200 lines of Swift.
