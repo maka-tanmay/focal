@@ -20,8 +20,12 @@ Requires macOS 13 or later. Universal binary (Apple Silicon and Intel).
 
 ## Use
 
-- **⌃⌥⌘F** toggles the blur anywhere.
-- Menu bar icon: toggle, pick blur strength (Light / Medium / Strong), Launch at Login, Quit.
+- **Click the ◐ menu bar icon** to switch the blur on or off instantly. **⌃⌥⌘F** does the same from anywhere.
+- **Right-click the icon** for options:
+  - **Blur slider** for how strong the blur is.
+  - **Auto Strength**: Focal decides. The more windows behind the active one, the stronger the blur. Nothing to hide, no blur.
+  - **Keep Sharp**: pin up to two extra windows that stay clear alongside the active one. Open the menu while the window you want is in front and pick "Keep … Window Sharp". Pins clear when the window closes.
+  - Launch at Login, Quit.
 - Full-screen apps are left alone.
 - Works across multiple displays and Spaces.
 
