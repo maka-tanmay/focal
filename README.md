@@ -1,3 +1,5 @@
+<p align="center"><img src="Design/banner.png" alt="Focal" width="720"></p>
+
 # Focal
 
 **Blur everything except the window you're working in.** A free, open-source macOS menu bar app.

@@ -8,8 +8,9 @@ APP=build/Focal.app
 
 swift build -c release --arch arm64 --arch x86_64
 rm -rf build
-mkdir -p "$APP/Contents/MacOS"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp .build/apple/Products/Release/Focal "$APP/Contents/MacOS/Focal"
+cp Design/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 sed "s/__VERSION__/$VERSION/g" Info.plist > "$APP/Contents/Info.plist"
 codesign --force --sign - "$APP"
 ditto -c -k --keepParent "$APP" build/Focal.zip
