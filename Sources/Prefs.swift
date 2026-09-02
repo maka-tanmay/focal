@@ -8,6 +8,9 @@ final class Prefs: ObservableObject {
     @Published var iconStyle: IconStyle = IconStyle(rawValue: UserDefaults.standard.string(forKey: "iconStyle") ?? "") ?? .dotted {
         didSet { defaults.set(iconStyle.rawValue, forKey: "iconStyle") }
     }
+    @Published var panelStyle: PanelStyle = PanelStyle(rawValue: UserDefaults.standard.string(forKey: "panelStyle") ?? "") ?? .glass {
+        didSet { defaults.set(panelStyle.rawValue, forKey: "panelStyle") }
+    }
     @Published var hotkey: Hotkey = (UserDefaults.standard.data(forKey: "hotkey")).flatMap { try? JSONDecoder().decode(Hotkey.self, from: $0) } ?? .standard {
         didSet { defaults.set(try? JSONEncoder().encode(hotkey), forKey: "hotkey") }
     }

@@ -40,6 +40,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             self.updateIcon(self.overlay.enabled, style: style)
         }.store(in: &bag)
         prefs.$hotkey.dropFirst().sink { [weak self] hotkey in self?.registerHotKey(hotkey) }.store(in: &bag)
+        prefs.$panelStyle.dropFirst().removeDuplicates().sink { [weak self] _ in
+            guard let self else { return }
+            self.closePanel()
+            DispatchQueue.main.async { self.fitPanel() }
+        }.store(in: &bag)
         overlay.enabled = defaults.object(forKey: "enabled") as? Bool ?? true
         // Content grows/shrinks (pins, tip): keep the panel fitted.
         overlay.objectWillChange
@@ -74,7 +79,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let pages: [(String, String, AnyView)] = [
             ("Welcome", "sparkles", AnyView(WelcomeTab(overlay: overlay, prefs: prefs))),
             ("General", "slider.horizontal.3", AnyView(GeneralTab(overlay: overlay))),
-            ("Icon", "circle.lefthalf.filled", AnyView(IconTab(prefs: prefs))),
+            ("Appearance", "paintpalette", AnyView(AppearanceTab(prefs: prefs))),
             ("Shortcuts", "keyboard", AnyView(ShortcutsTab(prefs: prefs))),
             ("About", "info.circle", AnyView(AboutTab())),
         ]
@@ -146,27 +151,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         p.animationBehavior = .utilityWindow
 
         host.translatesAutoresizingMaskIntoConstraints = false
-        let container: NSView
-        if #available(macOS 26.0, *) {
-            // Regular glass: heavy blur behind the sheet so text and windows underneath don't bleed through.
-            let glass = NSGlassEffectView()
-            glass.style = .regular
-            glass.tintColor = NSColor.white.withAlphaComponent(0.06) // lift the sheet toward Control Center's grey
-            glass.cornerRadius = 22
-            glass.contentView = host
-            container = glass
-        } else {
-            let v = NSVisualEffectView()
-            v.material = .popover
-            v.blendingMode = .behindWindow
-            v.state = .active
-            v.wantsLayer = true
-            v.layer?.cornerRadius = 22
-            v.layer?.cornerCurve = .continuous
-            v.layer?.masksToBounds = true
-            v.addSubview(host)
-            container = v
-        }
+        let container = NSView() // transparent; every style draws its own material in SwiftUI
+        container.addSubview(host)
         p.contentView = container
         NSLayoutConstraint.activate([
             host.leadingAnchor.constraint(equalTo: container.leadingAnchor),
@@ -218,7 +204,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let visible = screen?.visibleFrame ?? anchor
         var x = anchor.midX - size.width / 2
         x = min(max(x, visible.minX + 8), visible.maxX - size.width - 8)
-        let y = anchor.minY - 6 - size.height
+        let y = anchor.minY - 6 + prefs.panelStyle.sheetInset - size.height
         panel.setFrame(NSRect(x: x, y: y, width: size.width, height: size.height), display: true)
     }
 

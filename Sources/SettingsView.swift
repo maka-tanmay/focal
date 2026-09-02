@@ -281,24 +281,67 @@ struct GeneralTab: View {
     }
 }
 
-// MARK: - Icon
+// MARK: - Appearance
 
-struct IconTab: View {
+struct AppearanceTab: View {
     @ObservedObject var prefs: Prefs
     private let columns = [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Pick how Focal looks in the menu bar. Each card shows the blurring and paused states on a light and a dark menu bar.")
-                .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-            LazyVGrid(columns: columns, spacing: 12) {
-                ForEach(IconStyle.allCases) { style in
-                    IconCard(style: style, selected: style == prefs.iconStyle) { prefs.iconStyle = style }
+        VStack(alignment: .leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Panel style").font(.headline)
+                Text("The quick panel that drops from the menu bar icon.").foregroundStyle(.secondary)
+                LazyVGrid(columns: columns, spacing: 12) {
+                    ForEach(PanelStyle.allCases) { style in
+                        SelectCard(selected: style == prefs.panelStyle, title: style.title, subtitle: style.subtitle) {
+                            prefs.panelStyle = style
+                        } content: {
+                            PanelPreview(style: style)
+                        }
+                    }
+                }
+            }
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Menu bar icon").font(.headline)
+                Text("Left is blurring, right is paused, on a light and a dark menu bar.").foregroundStyle(.secondary)
+                LazyVGrid(columns: columns, spacing: 12) {
+                    ForEach(IconStyle.allCases) { style in
+                        IconCard(style: style, selected: style == prefs.iconStyle) { prefs.iconStyle = style }
+                    }
                 }
             }
         }
         .padding(24)
         .frame(width: 560)
+    }
+}
+
+/// A selectable card with a preview and a caption, accent-outlined when chosen.
+struct SelectCard<Content: View>: View {
+    let selected: Bool
+    let title: String
+    var subtitle: String? = nil
+    let select: () -> Void
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        Button(action: select) {
+            VStack(spacing: 8) {
+                content()
+                VStack(spacing: 1) {
+                    Text(title).font(.callout)
+                    if let subtitle { Text(subtitle).font(.caption).foregroundStyle(.secondary) }
+                }
+            }
+            .padding(10)
+            .frame(maxWidth: .infinity)
+            .background(RoundedRectangle(cornerRadius: 12).fill(selected ? Color.accentColor.opacity(0.12) : Color.primary.opacity(0.03)))
+            .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(selected ? Color.accentColor : Color.primary.opacity(0.1), lineWidth: selected ? 2 : 1))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
 
