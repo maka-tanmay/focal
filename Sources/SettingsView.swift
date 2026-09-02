@@ -61,10 +61,10 @@ struct HowItWorksView: View {
                 miniWindow(i)
                     .offset(positions[i])
                     .blur(radius: i == active ? 0 : 5)
-                    .opacity(i == active ? 1 : 0.7)
+                    .opacity(i == active ? 1 : 0.85)
                     .scaleEffect(i == active ? 1 : 0.97)
                     .zIndex(i == active ? 1 : 0)
-                    .shadow(color: .black.opacity(i == active ? 0.4 : 0), radius: 16, y: 10)
+                    .shadow(color: .black.opacity(i == active ? 0.45 : 0.2), radius: i == active ? 16 : 6, y: i == active ? 10 : 3)
             }
 
             // Menu bar
@@ -198,7 +198,7 @@ struct HowItWorksView: View {
                 Spacer()
             }
             .padding(.horizontal, 8).frame(height: 22)
-            .background(Color(nsColor: .windowBackgroundColor))
+            .background(Color(white: 0.93))
             Group {
                 switch i {
                 case 0: // Notes: a title and ruled lines
@@ -231,10 +231,12 @@ struct HowItWorksView: View {
             }
             .padding(10)
             .frame(width: 170, height: 96, alignment: .topLeading)
-            .background(Color(nsColor: .textBackgroundColor))
+            .background(Color.white)
         }
+        .environment(\.colorScheme, .light)
         .clipShape(RoundedRectangle(cornerRadius: 8))
-        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.black.opacity(0.15)))
+        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.white.opacity(0.9), lineWidth: 1.5))
+        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.black.opacity(0.25), lineWidth: 0.5).padding(1.5))
     }
 }
 

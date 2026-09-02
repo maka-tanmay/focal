@@ -149,7 +149,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let container: NSView
         if #available(macOS 26.0, *) {
             let glass = NSGlassEffectView()
-            glass.cornerRadius = 22
+            glass.style = .regular
+            glass.cornerRadius = 20
             glass.contentView = host
             container = glass
         } else {
