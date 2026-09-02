@@ -8,13 +8,22 @@ struct WindowRef: Equatable {
 /// One full-screen blur window per display, ordered just below the active window,
 /// so everything behind the active window looks blurred. Pinned windows get a hole
 /// cut in the blur so they stay sharp too.
-final class Overlay {
-    var strength: CGFloat = 0.8 { didSet { refresh() } }
+final class Overlay: ObservableObject {
+    private let defaults = UserDefaults.standard
+
+    @Published var strength: CGFloat = UserDefaults.standard.object(forKey: "strength") as? CGFloat ?? 0.8 {
+        didSet { defaults.set(strength, forKey: "strength"); refresh() }
+    }
     /// Auto picks the strength from how many windows are cluttering the display behind the active one.
-    var auto = false { didSet { refresh() } }
-    var enabled = false { didSet { enabled ? start() : stop() } }
-    private(set) var active: WindowRef?
-    private(set) var pinned: [WindowRef] = []
+    @Published var auto = UserDefaults.standard.bool(forKey: "auto") {
+        didSet { defaults.set(auto, forKey: "auto"); refresh() }
+    }
+    /// Set after launch; the initial value is stored under "enabled" (default on).
+    @Published var enabled = false {
+        didSet { defaults.set(enabled, forKey: "enabled"); enabled ? start() : stop() }
+    }
+    @Published private(set) var active: WindowRef?
+    @Published private(set) var pinned: [WindowRef] = []
 
     private struct Info { let id: CGWindowID; let pid: pid_t; let name: String; let bounds: CGRect }
     private var windows: [(screen: NSScreen, window: NSWindow)] = []
@@ -116,13 +125,15 @@ final class Overlay {
         guard frontPID != 0 else { return }
 
         let list = visibleWindows()
-        pinned.removeAll { p in !list.contains { $0.id == p.id } } // forget closed windows
+        let alive = pinned.filter { p in list.contains { $0.id == p.id } } // forget closed windows
+        if alive != pinned { pinned = alive }
         guard let act = list.first(where: { $0.pid == frontPID }) else {
-            active = nil
+            if active != nil { active = nil }
             hide()
             return
         }
-        active = WindowRef(id: act.id, name: act.name)
+        let ref = WindowRef(id: act.id, name: act.name)
+        if ref != active { active = ref }
 
         let center = CGPoint(x: act.bounds.midX, y: act.bounds.midY)
         let screen = windows.first { $0.screen.cgFrame.contains(center) }?.screen ?? windows.first?.screen

@@ -20,14 +20,13 @@ Requires macOS 13 or later. Universal binary (Apple Silicon and Intel).
 
 ## Use
 
-- **Click the ◐ menu bar icon** to switch the blur on or off instantly. **⌃⌥⌘F** does the same from anywhere.
-- **Right-click the icon** for options:
-  - **Blur slider** for how strong the blur is.
-  - **Auto Strength**: Focal decides. The more windows behind the active one, the stronger the blur. Nothing to hide, no blur.
-  - **Keep Sharp**: pin up to two extra windows that stay clear alongside the active one. Open the menu while the window you want is in front and pick "Keep … Window Sharp". Pins clear when the window closes.
-  - Launch at Login, Quit.
-- Full-screen apps are left alone.
-- Works across multiple displays and Spaces.
+The first time Focal launches it opens its panel and explains itself. After that:
+
+- **Click the ◐ menu bar icon** to open the panel: on/off switch, blur strength slider, Auto, windows to keep sharp, launch at login.
+- **⌥-click the icon** or press **⌃⌥⌘F** to pause or resume instantly. The icon turns dashed when paused.
+- **Auto** lets Focal pick the strength: stronger the more windows sit behind the active one, off when there is nothing to hide.
+- **Also keep sharp** pins up to two extra windows that stay clear next to the active one. Open the panel while the window you want is in front and click "Keep … window sharp".
+- Full-screen apps are left alone. Works across multiple displays and Spaces.
 
 ## How it works
 
