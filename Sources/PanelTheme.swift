@@ -21,8 +21,8 @@ enum PanelStyle: String, CaseIterable, Identifiable {
         }
     }
 
-    /// Transparent margin around a self-drawn sheet so its shadow has room. Glass has no sheet at all.
-    var sheetInset: CGFloat { self == .glass ? 0 : 18 }
+    /// Transparent margin around the tiles: shadow room for the drawn sheets, fade-out room for the glass blur.
+    var sheetInset: CGFloat { self == .glass ? 16 : 18 }
 }
 
 // MARK: - Palette
@@ -97,11 +97,11 @@ private struct SheetModifier: ViewModifier {
     func body(content: Content) -> some View {
         switch style {
         case .glass:
-            // No sheet: the tiles float on their own, like Control Center's modules.
+            // No sheet: the tiles float on a feathered blur (drawn by the window), like Control Center's modules.
             if #available(macOS 26.0, *) {
-                GlassEffectContainer(spacing: 10) { content }
+                GlassEffectContainer(spacing: 10) { content }.padding(style.sheetInset)
             } else {
-                content
+                content.padding(style.sheetInset)
             }
         case .soft:
             content

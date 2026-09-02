@@ -25,6 +25,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
     )
     private lazy var panel: NSPanel = makePanel()
+    /// Soft blur behind the glass tiles; its mask fades out at the edges so no rectangle shows.
+    private let backdrop = NSVisualEffectView()
     private lazy var settings: NSWindow = makeSettingsWindow()
 
     override init() {
@@ -152,6 +154,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
         host.translatesAutoresizingMaskIntoConstraints = false
         let container = NSView() // transparent; every style draws its own material in SwiftUI
+        backdrop.material = .popover
+        backdrop.blendingMode = .behindWindow
+        backdrop.state = .active
+        backdrop.autoresizingMask = [.width, .height]
+        container.addSubview(backdrop)
         container.addSubview(host)
         p.contentView = container
         NSLayoutConstraint.activate([
@@ -206,6 +213,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         x = min(max(x, visible.minX + 8), visible.maxX - size.width - 8)
         let y = anchor.minY - 6 + prefs.panelStyle.sheetInset - size.height
         panel.setFrame(NSRect(x: x, y: y, width: size.width, height: size.height), display: true)
+        backdrop.isHidden = prefs.panelStyle != .glass
+        backdrop.frame = NSRect(origin: .zero, size: size)
+        backdrop.maskImage = featheredMask(size: size)
+    }
+
+    /// Opaque rounded region that dissolves over ~16 pt, so the blur has no visible edge.
+    private func featheredMask(size: NSSize) -> NSImage {
+        NSImage(size: size, flipped: false) { rect in
+            let shadow = NSShadow()
+            shadow.shadowBlurRadius = 16
+            shadow.shadowOffset = .zero
+            shadow.shadowColor = .black
+            shadow.set()
+            NSColor.black.setFill()
+            NSBezierPath(roundedRect: rect.insetBy(dx: 18, dy: 18), xRadius: 28, yRadius: 28).fill()
+            return true
+        }
     }
 
     // MARK: - Menu bar icon
