@@ -2,7 +2,13 @@ import AppKit
 
 struct WindowRef: Equatable {
     let id: CGWindowID
+    let pid: pid_t
     let name: String
+    /// The app's real icon, or the generic app icon if the process can't be resolved.
+    var icon: NSImage {
+        NSRunningApplication(processIdentifier: pid)?.icon
+            ?? NSWorkspace.shared.icon(for: .applicationBundle)
+    }
 }
 
 /// One full-screen blur window per display, ordered just below the active window,
@@ -21,6 +27,10 @@ final class Overlay: ObservableObject {
     /// Set after launch; the initial value is stored under "enabled" (default on).
     @Published var enabled = false {
         didSet { defaults.set(enabled, forKey: "enabled"); enabled ? start() : stop() }
+    }
+    /// Leave full-screen apps alone (default). Off lets Focal blur inside full-screen Spaces, e.g. Split View.
+    @Published var skipFullScreen = UserDefaults.standard.object(forKey: "skipFullScreen") as? Bool ?? true {
+        didSet { defaults.set(skipFullScreen, forKey: "skipFullScreen"); refresh() }
     }
     @Published private(set) var active: WindowRef?
     @Published private(set) var pinned: [WindowRef] = []
@@ -41,6 +51,10 @@ final class Overlay: ObservableObject {
         NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
         ) { [weak self] _ in self?.refresh() }
+        // Swiping Spaces: drop the overlay instantly, then re-place it in the new Space on the next tick.
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: .main
+        ) { [weak self] _ in self?.hide(); self?.refresh() }
     }
 
     /// Keep this window sharp (max 2); call again to unpin.
@@ -91,7 +105,8 @@ final class Overlay: ObservableObject {
         w.level = .normal
         w.ignoresMouseEvents = true
         w.hasShadow = false
-        w.collectionBehavior = [.canJoinAllSpaces, .transient, .ignoresCycle]
+        // moveToActiveSpace (not canJoinAllSpaces) so the overlay doesn't ride along during a swipe.
+        w.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary, .transient, .ignoresCycle]
         let blur = NSVisualEffectView(frame: w.contentView!.bounds)
         blur.autoresizingMask = [.width, .height]
         blur.blendingMode = .behindWindow
@@ -132,13 +147,15 @@ final class Overlay: ObservableObject {
             hide()
             return
         }
-        let ref = WindowRef(id: act.id, name: act.name)
+        let ref = WindowRef(id: act.id, pid: act.pid, name: act.name)
         if ref != active { active = ref }
 
         let center = CGPoint(x: act.bounds.midX, y: act.bounds.midY)
         let screen = windows.first { $0.screen.cgFrame.contains(center) }?.screen ?? windows.first?.screen
         guard let screen else { return }
-        if act.bounds.contains(screen.cgFrame) { hide(); return } // full screen: nothing to blur
+        // Full-screen (or maximized under the menu bar / notch): nothing worth blurring behind it.
+        let fillsScreen = act.bounds.width >= screen.cgFrame.width - 2 && act.bounds.height >= screen.cgFrame.height - 80
+        if fillsScreen && skipFullScreen { hide(); return }
 
         if force || act.id != currentID {
             currentID = act.id

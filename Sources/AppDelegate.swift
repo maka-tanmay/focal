@@ -13,10 +13,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private lazy var popover: NSPopover = {
         let p = NSPopover()
         p.behavior = .transient
-        p.appearance = NSAppearance(named: .darkAqua)
-        p.contentViewController = NSHostingController(
+        let host = NSHostingController(
             rootView: PopoverView(overlay: overlay, showTip: !defaults.bool(forKey: "onboarded"))
         )
+        host.sizingOptions = [.preferredContentSize] // size the popover to the content so nothing is cut off
+        p.contentViewController = host
         return p
     }()
 
