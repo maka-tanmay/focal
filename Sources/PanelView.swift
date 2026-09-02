@@ -25,6 +25,7 @@ struct PanelView: View {
         VStack(spacing: 10) {
             toggleTile
             strengthTile
+            fullScreenTile
             if !overlay.pinned.isEmpty || candidate != nil { pinsTile }
             HStack(spacing: 10) {
                 Button("Settings…", action: openSettings).panelButton()
@@ -94,6 +95,33 @@ struct PanelView: View {
         }
         .padding(.horizontal, 14).padding(.vertical, 12)
         .glassTile(RoundedRectangle(cornerRadius: 20))
+    }
+
+    /// Capsule like the Focus tile: leave full-screen apps alone, or blur inside them too.
+    private var fullScreenTile: some View {
+        Button {
+            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) { overlay.skipFullScreen.toggle() }
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "macwindow")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(.white)
+                    .frame(width: 40, height: 40)
+                    .background(Circle().fill(overlay.skipFullScreen ? Color.accentColor : Color.white.opacity(0.18)))
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Full-screen apps").font(.system(size: 13, weight: .semibold))
+                    Text(overlay.skipFullScreen ? "Left sharp" : "Blurred too").font(.system(size: 12)).foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 10).padding(.vertical, 9)
+            .frame(maxWidth: .infinity)
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .glassTile(Capsule(), interactive: true)
+        .help(overlay.skipFullScreen ? "Full-screen apps are never blurred. Click to blur inside them too." : "Click to leave full-screen apps alone")
+        .accessibilityLabel(overlay.skipFullScreen ? "Full-screen apps are left sharp" : "Full-screen apps are blurred too")
     }
 
     private var pinsTile: some View {

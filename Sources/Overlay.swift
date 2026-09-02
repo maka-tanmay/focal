@@ -134,6 +134,23 @@ final class Overlay: ObservableObject {
         }
     }
 
+    /// The front app's real window. Browsers keep toolbar strips and popups as extra normal-level windows,
+    /// some parked off-screen, some lying on top of the main window; those must not be mistaken for it.
+    private func mainWindow(of pid: pid_t, in list: [Info]) -> Info? {
+        let screens = NSScreen.screens.map(\.cgFrame)
+        func visibleFraction(_ r: CGRect) -> CGFloat {
+            let shown = screens.reduce(CGFloat(0)) { $0 + r.intersection($1).area }
+            return r.area > 0 ? shown / r.area : 0
+        }
+        let mine = list.filter { $0.pid == pid && visibleFraction($0.bounds) >= 0.5 }
+        guard let front = mine.first else { return nil }
+        // A small window sitting entirely inside a bigger sibling is a toolbar, sheet or popup: use the sibling.
+        if let parent = mine.first(where: { $0.id != front.id && $0.bounds.contains(front.bounds) && front.bounds.area < 0.5 * $0.bounds.area }) {
+            return parent
+        }
+        return front
+    }
+
     private func tick(force: Bool) {
         // Remember the last real front app so the menu (which makes Focal front) doesn't disturb state.
         if let pid = NSWorkspace.shared.frontmostApplication?.processIdentifier, pid != ownPID { frontPID = pid }
@@ -142,7 +159,7 @@ final class Overlay: ObservableObject {
         let list = visibleWindows()
         let alive = pinned.filter { p in list.contains { $0.id == p.id } } // forget closed windows
         if alive != pinned { pinned = alive }
-        guard let act = list.first(where: { $0.pid == frontPID }) else {
+        guard let act = mainWindow(of: frontPID, in: list) else {
             if active != nil { active = nil }
             hide()
             return
@@ -229,6 +246,10 @@ final class Overlay: ObservableObject {
             windows.forEach { $0.window.animator().alphaValue = alpha }
         }
     }
+}
+
+private extension CGRect {
+    var area: CGFloat { isNull ? 0 : width * height }
 }
 
 private extension NSScreen {
