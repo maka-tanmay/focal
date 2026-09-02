@@ -1,62 +1,79 @@
-<p align="center"><img src="Design/banner.png" alt="Focal" width="720"></p>
+<p align="center"><img src="Design/banner.png" alt="Focal" width="640"></p>
 
-# Focal
+<h3 align="center">The window you're using stays sharp. Everything else softens.</h3>
 
-**Blur everything except the window you're working in.** A free, open-source macOS menu bar app.
+<p align="center">
+  <a href="https://github.com/maka-tanmay/focal/releases/latest/download/Focal.zip"><img src="Design/download-button.png" alt="Download for Mac" width="240"></a>
+</p>
+<p align="center">
+  <img alt="Free" src="https://img.shields.io/badge/free-forever-0a84ff?style=flat-square">
+  <img alt="macOS 13+" src="https://img.shields.io/badge/macOS-13%2B-000?style=flat-square&logo=apple&logoColor=white">
+  <img alt="No permissions" src="https://img.shields.io/badge/permissions-none-2ea043?style=flat-square">
+  <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square"></a>
+</p>
 
-Click a window and everything behind it softens into a blur. Switch windows and the focus follows. No account, no permissions dialog, no Dock icon.
+<p align="center"><img src="Design/shots/hero.gif" alt="Click a window and everything behind it blurs" width="800"></p>
 
-## Install
+<br>
 
-Paste this in Terminal:
+<p align="center"><img src="Design/shots/before-after.png" alt="Before and with Focal" width="900"></p>
+
+<br>
+
+## One click, and it's on
+
+<p align="center"><img src="Design/shots/panel-glass.png" alt="The quick panel" width="340"></p>
+
+Focal lives in your menu bar. Click the icon, flip the switch. Slide the strength from a light haze to a full frost, or let **Auto** decide. Need a second window sharp next to your work? **Pin** it.
+
+<br>
+
+## Pick a look
+
+<p align="center"><img src="Design/shots/styles.png" alt="Glass, Soft and Leather panel styles" width="900"></p>
+
+<p align="center"><sub>Glass · Soft · Leather</sub></p>
+
+<p align="center"><img src="Design/shots/settings-appearance.png" alt="Panel style and menu bar icon choices" width="560"></p>
+
+<br>
+
+## It shows you around
+
+<p align="center"><img src="Design/shots/settings-welcome.png" alt="The Welcome tab" width="560"></p>
+
+<br>
+
+## Get Focal
+
+**1.** [Download](https://github.com/maka-tanmay/focal/releases/latest/download/Focal.zip) and open the zip.
+**2.** Drag **Focal** into **Applications** and open it.
+**3.** First time only, your Mac says it can't verify the developer. Click **Done**, open **System Settings → Privacy & Security**, scroll down, click **Open Anyway**.
+
+Done. Focal is in your menu bar.
+
+<details>
+<summary>Skip step 3 with one line in Terminal</summary>
+<br>
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/maka-tanmay/focal/main/install.sh | sh
 ```
+</details>
 
-That downloads the latest release into `/Applications` and launches it. Look for the ◐ icon in your menu bar.
+<br>
 
-Prefer clicking? Grab `Focal.zip` from the [latest release](https://github.com/maka-tanmay/focal/releases/latest), unzip, drag to Applications. Because the app isn't notarized, the first launch needs **right-click → Open**.
+<details>
+<summary><b>Good to know</b></summary>
+<br>
 
-Requires macOS 13 or later. Universal binary (Apple Silicon and Intel).
+- **Full-screen apps are left alone.** Swipe to a movie or a game and Focal steps aside. There's a switch if you want it to blur there too.
+- **Two screens?** Your window stays sharp, both screens blur behind it.
+- **Pause anywhere** with ⌃⌥⌘F, or ⌥-click the icon. Record your own shortcut in Settings.
+- **Nothing to worry about.** Focal never reads your screen, never goes online, and asks for no permissions. It only asks macOS where the windows are.
+- **Light on your Mac.** One blur layer, the same kind macOS uses for its own menus.
+</details>
 
-## Use
+<br>
 
-Focal opens its Settings window the first time it runs and explains itself there. After that it lives in the menu bar.
-
-- **Click the ◐ icon** for the quick panel: on/off switch, strength slider, Auto, and pins for windows to keep sharp.
-- **⌥-click the icon** or press **⌃⌥⌘F** to pause or resume instantly. Both the shortcut and the icon style can be changed in Settings.
-- **Settings…** in the panel opens the full window: every option, launch at login, and About. Focal shows a Dock icon only while that window is open.
-- **Auto** lets Focal pick the strength: stronger the more windows sit behind the active one, off when there is nothing to hide.
-- **Keep sharp** pins up to two extra windows that stay clear next to the active one. Open the panel while the window you want is in front and click Pin.
-- Full-screen apps are left alone unless you turn that off in Settings. Works across multiple displays and Spaces.
-
-## Screenshots
-
-<p align="center">
-  <img src="Design/panel-light.png" alt="Focal quick panel, light" width="300">
-  <img src="Design/panel-dark.png" alt="Focal quick panel, dark" width="300">
-</p>
-<p align="center">
-  <img src="Design/settings-light.png" alt="Focal settings, light" width="420">
-  <img src="Design/settings-dark.png" alt="Focal settings, dark" width="420">
-</p>
-
-## How it works
-
-One borderless window per display holds an `NSVisualEffectView` with behind-window blending. Every 150 ms Focal reads the on-screen window list, finds the frontmost app's frontmost normal window, and orders the blur window directly beneath it. Everything above stays sharp, everything below gets blurred. That's the whole trick, in about 200 lines of Swift.
-
-No Accessibility or Screen Recording permission is needed because the window list and window ordering are public APIs.
-
-## Build from source
-
-```bash
-git clone https://github.com/maka-tanmay/focal && cd focal && ./build.sh
-open build/Focal.app
-```
-
-Needs Xcode command line tools. Releases are built by GitHub Actions on every `v*` tag.
-
-## Credits
-
-Inspired by [Monocle](https://www.heyiam.dk/monocle) by Dominik Kandravy, and the window-ordering approach in [dimsum](https://github.com/nshi/dimsum). MIT licensed.
+<p align="center"><sub>Made by <a href="https://github.com/maka-tanmay">Tanmay Maka</a> · Inspired by <a href="https://www.heyiam.dk/monocle">Monocle</a> · <a href="https://github.com/maka-tanmay/focal/issues">Something off? Tell us</a> · <a href="BUILDING.md">Under the hood</a></sub></p>

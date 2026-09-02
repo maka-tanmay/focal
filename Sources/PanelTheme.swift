@@ -36,6 +36,8 @@ private extension Color {
 
 struct PanelTheme {
     let style: PanelStyle
+    /// Snapshot mode: Liquid Glass can't render offscreen, so draw the flat fallback tiles instead.
+    static var flatGlass = false
 
     static let softBg = Color(hex: 0xE4E7EE)
     static let softDark = Color(hex: 0xA3ACBE, alpha: 0.55)
@@ -98,7 +100,7 @@ private struct SheetModifier: ViewModifier {
         switch style {
         case .glass:
             // No sheet: the tiles float on a feathered blur (drawn by the window), like Control Center's modules.
-            if #available(macOS 26.0, *) {
+            if #available(macOS 26.0, *), !PanelTheme.flatGlass {
                 GlassEffectContainer(spacing: 10) { content }.padding(style.sheetInset)
             } else {
                 content.padding(style.sheetInset)
@@ -123,11 +125,11 @@ private struct TileModifier<S: InsettableShape>: ViewModifier {
     func body(content: Content) -> some View {
         switch style {
         case .glass:
-            if #available(macOS 26.0, *) {
+            if #available(macOS 26.0, *), !PanelTheme.flatGlass {
                 content.glassEffect(.regular, in: shape)
                     .overlay(shape.strokeBorder(Color.white.opacity(0.12)))
             } else {
-                content.background(.ultraThinMaterial, in: shape)
+                content.background(shape.fill(Color.white.opacity(0.10)))
                     .overlay(shape.strokeBorder(Color.white.opacity(0.16)))
             }
         case .soft:
@@ -211,7 +213,7 @@ struct PanelButton: View {
 extension View {
     /// Liquid Glass buttons on macOS 26, bordered elsewhere.
     @ViewBuilder func glassButton(prominent: Bool = false) -> some View {
-        if #available(macOS 26.0, *) {
+        if #available(macOS 26.0, *), !PanelTheme.flatGlass {
             if prominent { buttonStyle(.glassProminent) } else { buttonStyle(.glass) }
         } else {
             if prominent { buttonStyle(.borderedProminent) } else { buttonStyle(.bordered) }

@@ -233,6 +233,7 @@ struct HowItWorksView: View {
             .frame(width: 170, height: 96, alignment: .topLeading)
             .background(Color.white)
         }
+        .frame(width: 170)
         .environment(\.colorScheme, .light)
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.white.opacity(0.9), lineWidth: 1.5))
