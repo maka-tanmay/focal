@@ -139,7 +139,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let p = GlassPanel(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         p.isOpaque = false
         p.backgroundColor = .clear
-        p.hasShadow = true
+        p.hasShadow = false // the shadow region is computed as a rectangle and shows as a hard outline
         p.level = .popUpMenu
         p.isReleasedWhenClosed = false
         p.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary, .transient]
@@ -148,9 +148,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         host.translatesAutoresizingMaskIntoConstraints = false
         let container: NSView
         if #available(macOS 26.0, *) {
+            // Clear glass shows the desktop through the sheet like Control Center; the tint is the
+            // dimming layer Apple asks for so text stays legible on it.
             let glass = NSGlassEffectView()
-            glass.style = .regular
-            glass.cornerRadius = 20
+            glass.style = .clear
+            glass.tintColor = NSColor(name: nil) { appearance in
+                appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+                    ? NSColor.black.withAlphaComponent(0.4)
+                    : NSColor.white.withAlphaComponent(0.5)
+            }
+            glass.cornerRadius = 22
             glass.contentView = host
             container = glass
         } else {
@@ -184,7 +191,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         fitPanel()
         panel.alphaValue = 0
         panel.makeKeyAndOrderFront(nil)
-        panel.invalidateShadow()
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = 0.15
             panel.animator().alphaValue = 1
