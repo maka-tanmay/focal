@@ -10,10 +10,11 @@ if let i = CommandLine.arguments.firstIndex(of: "--snapshot"), CommandLine.argum
     let overlay = Overlay()
     overlay.enabled = true
     app.setActivationPolicy(.regular)
-    func snap(_ name: String, _ appearance: NSAppearance.Name, then: @escaping () -> Void) {
-        let root = PopoverView(overlay: overlay, showTip: false)
+    func snap<V: View>(_ name: String, _ appearance: NSAppearance.Name, _ content: V, then: @escaping () -> Void) {
+        let root = content
+            .environment(\.controlActiveState, .key) // shell-launched apps cannot activate; draw controls as active anyway
             .background(Color(nsColor: .windowBackgroundColor))
-            .clipShape(RoundedRectangle(cornerRadius: 18))
+            .clipShape(RoundedRectangle(cornerRadius: 14))
             .shadow(color: .black.opacity(0.28), radius: 18, y: 8)
             .padding(32)
         let view = NSHostingView(rootView: root)
@@ -30,14 +31,20 @@ if let i = CommandLine.arguments.firstIndex(of: "--snapshot"), CommandLine.argum
             let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds)!
             view.cacheDisplay(in: view.bounds, to: rep)
             do {
-                try rep.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: "\(dir)/panel-\(name).png"))
+                try rep.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: "\(dir)/\(name).png"))
             } catch { print("snapshot failed: \(error)") }
             window.orderOut(nil)
             then()
         }
     }
     DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { // let one tick find the active window
-        snap("light", .aqua) { snap("dark", .darkAqua) { exit(0) } }
+        snap("panel-light", .aqua, PanelView(overlay: overlay, openSettings: {})) {
+            snap("panel-dark", .darkAqua, PanelView(overlay: overlay, openSettings: {})) {
+                snap("settings-light", .aqua, SettingsView(overlay: overlay)) {
+                    snap("settings-dark", .darkAqua, SettingsView(overlay: overlay)) { exit(0) }
+                }
+            }
+        }
     }
     app.run()
 }

@@ -22,21 +22,24 @@ Requires macOS 13 or later. Universal binary (Apple Silicon and Intel).
 
 ## Use
 
-The first time Focal launches it opens its panel and explains itself. After that:
+Focal opens its Settings window the first time it runs and explains itself there. After that it lives in the menu bar.
 
-- **Click the ◐ menu bar icon** to open the panel: on/off switch, blur strength slider, Auto, windows to keep sharp, launch at login.
-- **⌥-click the icon** or press **⌃⌥⌘F** to pause or resume instantly. The icon turns dashed when paused.
+- **Click the ◐ icon** for the quick panel: on/off switch, strength slider, Auto, and pins for windows to keep sharp.
+- **⌥-click the icon** or press **⌃⌥⌘F** to pause or resume instantly. The icon turns into a dotted ring when paused.
+- **Settings…** in the panel opens the full window: every option, launch at login, and About. Focal shows a Dock icon only while that window is open.
 - **Auto** lets Focal pick the strength: stronger the more windows sit behind the active one, off when there is nothing to hide.
-- **Also keep sharp** pins up to two extra windows that stay clear next to the active one. Open the panel while the window you want is in front and click "Keep … window sharp".
-- Full-screen apps are left alone. Works across multiple displays and Spaces.
+- **Keep sharp** pins up to two extra windows that stay clear next to the active one. Open the panel while the window you want is in front and click Pin.
+- Full-screen apps are left alone unless you turn that off in Settings. Works across multiple displays and Spaces.
 
 ## Screenshots
 
-The panel drops down from the menu bar like a Control Center panel, in your system's light or dark look.
-
 <p align="center">
-  <img src="Design/panel-light.png" alt="Focal panel, light" width="340">
-  <img src="Design/panel-dark.png" alt="Focal panel, dark" width="340">
+  <img src="Design/panel-light.png" alt="Focal quick panel, light" width="300">
+  <img src="Design/panel-dark.png" alt="Focal quick panel, dark" width="300">
+</p>
+<p align="center">
+  <img src="Design/settings-light.png" alt="Focal settings, light" width="420">
+  <img src="Design/settings-dark.png" alt="Focal settings, dark" width="420">
 </p>
 
 ## How it works

@@ -8,7 +8,7 @@ final class GlassPanel: NSPanel {
     override var canBecomeKey: Bool { true }
 }
 
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     static private(set) var shared: AppDelegate!
 
     private let overlay = Overlay()
@@ -17,9 +17,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var bag = Set<AnyCancellable>()
     private var monitors: [Any] = []
     private lazy var host = NSHostingView(
-        rootView: PopoverView(overlay: overlay, showTip: !defaults.bool(forKey: "onboarded"))
+        rootView: PanelView(overlay: overlay) { [weak self] in
+            self?.closePanel()
+            self?.showSettings()
+        }
     )
     private lazy var panel: NSPanel = makePanel()
+    private lazy var settings: NSWindow = makeSettingsWindow()
 
     override init() {
         super.init()
@@ -40,13 +44,53 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         item.button?.action = #selector(statusClicked)
         item.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
         registerHotKey()
+        installMainMenu()
 
         if !defaults.bool(forKey: "onboarded") {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [self] in
-                showPanel()
-                defaults.set(true, forKey: "onboarded")
-            }
+            defaults.set(true, forKey: "onboarded")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [self] in showSettings() }
         }
+    }
+
+    /// Clicking the Dock icon (visible while Settings is open) brings Settings back.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        showSettings()
+        return true
+    }
+
+    // MARK: - Settings window (regular app with a Dock icon only while it's open)
+
+    private func makeSettingsWindow() -> NSWindow {
+        let w = NSWindow(contentRect: .zero, styleMask: [.titled, .closable, .miniaturizable], backing: .buffered, defer: false)
+        w.title = "Focal"
+        w.contentViewController = NSHostingController(rootView: SettingsView(overlay: overlay))
+        w.isReleasedWhenClosed = false
+        w.delegate = self
+        w.center()
+        return w
+    }
+
+    private func showSettings() {
+        NSApp.setActivationPolicy(.regular)
+        settings.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        guard (notification.object as? NSWindow) == settings else { return }
+        NSApp.setActivationPolicy(.accessory)
+    }
+
+    /// Minimal main menu so ⌘W / ⌘Q work while the Settings window is up.
+    private func installMainMenu() {
+        let main = NSMenu()
+        let appItem = NSMenuItem()
+        let appMenu = NSMenu()
+        appMenu.addItem(withTitle: "Close Window", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+        appMenu.addItem(withTitle: "Quit Focal", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appItem.submenu = appMenu
+        main.addItem(appItem)
+        NSApp.mainMenu = main
     }
 
     @objc func toggle() {
@@ -87,15 +131,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             v.material = .popover
             v.blendingMode = .behindWindow
             v.state = .active
-            v.wantsLayer = true
-            v.layer?.cornerRadius = 18
-            v.layer?.masksToBounds = true
             v.addSubview(host)
             glass = v
         }
+        // Clip everything to macOS's continuous (squircle) corner curve.
+        let clip = NSView()
+        clip.wantsLayer = true
+        clip.layer?.cornerRadius = 18
+        clip.layer?.cornerCurve = .continuous
+        clip.layer?.masksToBounds = true
         glass.translatesAutoresizingMaskIntoConstraints = false
-        p.contentView = glass
+        clip.addSubview(glass)
+        p.contentView = clip
         NSLayoutConstraint.activate([
+            glass.leadingAnchor.constraint(equalTo: clip.leadingAnchor),
+            glass.trailingAnchor.constraint(equalTo: clip.trailingAnchor),
+            glass.topAnchor.constraint(equalTo: clip.topAnchor),
+            glass.bottomAnchor.constraint(equalTo: clip.bottomAnchor),
             host.leadingAnchor.constraint(equalTo: glass.leadingAnchor),
             host.trailingAnchor.constraint(equalTo: glass.trailingAnchor),
             host.topAnchor.constraint(equalTo: glass.topAnchor),
@@ -113,6 +165,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         fitPanel()
         panel.alphaValue = 0
         panel.makeKeyAndOrderFront(nil)
+        panel.invalidateShadow()
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = 0.15
             panel.animator().alphaValue = 1
