@@ -148,15 +148,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         host.translatesAutoresizingMaskIntoConstraints = false
         let container: NSView
         if #available(macOS 26.0, *) {
-            // Clear glass shows the desktop through the sheet like Control Center; the tint is the
-            // dimming layer Apple asks for so text stays legible on it.
+            // Regular glass: heavy blur behind the sheet so text and windows underneath don't bleed through.
             let glass = NSGlassEffectView()
-            glass.style = .clear
-            glass.tintColor = NSColor(name: nil) { appearance in
-                appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
-                    ? NSColor.black.withAlphaComponent(0.4)
-                    : NSColor.white.withAlphaComponent(0.5)
-            }
+            glass.style = .regular
             glass.cornerRadius = 22
             glass.contentView = host
             container = glass

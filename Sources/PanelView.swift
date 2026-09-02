@@ -196,8 +196,10 @@ struct ThinSlider: View {
 private extension View {
     /// One Control Center tile: Liquid Glass with its own rim on macOS 26, thin material with a rim elsewhere.
     @ViewBuilder func glassTile<S: InsettableShape>(_ shape: S, interactive: Bool = false) -> some View {
+        // A faint white rim keeps every tile visible over black, the way Control Center's tiles read.
         if #available(macOS 26.0, *) {
             glassEffect(interactive ? .regular.interactive() : .regular, in: shape)
+                .overlay(shape.strokeBorder(.white.opacity(0.14)))
         } else {
             background(.ultraThinMaterial, in: shape)
                 .overlay(shape.strokeBorder(.white.opacity(0.18)))
