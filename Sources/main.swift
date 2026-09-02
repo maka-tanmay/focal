@@ -40,8 +40,8 @@ if let i = CommandLine.arguments.firstIndex(of: "--snapshot"), CommandLine.argum
     DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { // let one tick find the active window
         snap("panel-light", .aqua, PanelView(overlay: overlay, openSettings: {})) {
             snap("panel-dark", .darkAqua, PanelView(overlay: overlay, openSettings: {})) {
-                snap("settings-light", .aqua, SettingsView(overlay: overlay)) {
-                    snap("settings-dark", .darkAqua, SettingsView(overlay: overlay)) { exit(0) }
+                snap("settings-light", .aqua, SettingsView(overlay: overlay, prefs: Prefs())) {
+                    snap("settings-dark", .darkAqua, SettingsView(overlay: overlay, prefs: Prefs())) { exit(0) }
                 }
             }
         }

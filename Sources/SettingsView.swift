@@ -4,6 +4,7 @@ import ServiceManagement
 /// The Settings window: welcome, every option, About. Opens on first launch and from the dropdown.
 struct SettingsView: View {
     @ObservedObject var overlay: Overlay
+    @ObservedObject var prefs: Prefs
     @State private var login = SMAppService.mainApp.status == .enabled
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -25,7 +26,7 @@ struct SettingsView: View {
                 .padding(.vertical, 6)
                 Label("Click any window. Everything behind it softens.", systemImage: "macwindow.on.rectangle")
                 Label("Click the ◐ icon in the menu bar for the quick panel.", systemImage: "menubar.rectangle")
-                Label("⌃⌥⌘F pauses or resumes from anywhere. ⌥-clicking the icon does the same.", systemImage: "keyboard")
+                Label("\(prefs.hotkey.label) pauses or resumes from anywhere. ⌥-clicking the icon does the same.", systemImage: "keyboard")
             }
 
             Section("Blur") {
@@ -53,6 +54,26 @@ struct SettingsView: View {
                 }
             }
 
+            Section("Menu bar icon") {
+                Picker("Style", selection: $prefs.iconStyle) {
+                    ForEach(IconStyle.allCases) { style in
+                        HStack(spacing: 6) {
+                            Image(nsImage: style.image(on: true))
+                            Image(nsImage: style.image(on: false))
+                            Text(style.title)
+                        }
+                        .tag(style)
+                    }
+                }
+                .pickerStyle(.radioGroup)
+                caption("Left is blurring, right is paused.")
+            }
+
+            Section("Shortcut") {
+                LabeledContent("Pause or resume") { ShortcutRecorder(hotkey: $prefs.hotkey) }
+                caption("Click the shortcut, then press the keys you want. Escape cancels.")
+            }
+
             Section("General") {
                 Toggle("Launch at login", isOn: $login)
                     .onChange(of: login) { on in
@@ -72,7 +93,7 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 500, height: 640)
+        .frame(width: 500, height: 720)
     }
 
     private func caption(_ text: String) -> some View {

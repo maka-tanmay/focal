@@ -25,7 +25,7 @@ Requires macOS 13 or later. Universal binary (Apple Silicon and Intel).
 Focal opens its Settings window the first time it runs and explains itself there. After that it lives in the menu bar.
 
 - **Click the ◐ icon** for the quick panel: on/off switch, strength slider, Auto, and pins for windows to keep sharp.
-- **⌥-click the icon** or press **⌃⌥⌘F** to pause or resume instantly. The icon turns into a dotted ring when paused.
+- **⌥-click the icon** or press **⌃⌥⌘F** to pause or resume instantly. Both the shortcut and the icon style can be changed in Settings.
 - **Settings…** in the panel opens the full window: every option, launch at login, and About. Focal shows a Dock icon only while that window is open.
 - **Auto** lets Focal pick the strength: stronger the more windows sit behind the active one, off when there is nothing to hide.
 - **Keep sharp** pins up to two extra windows that stay clear next to the active one. Open the panel while the window you want is in front and click Pin.

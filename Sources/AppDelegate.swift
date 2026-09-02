@@ -12,6 +12,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     static private(set) var shared: AppDelegate!
 
     private let overlay = Overlay()
+    private let prefs = Prefs()
+    private var hotKeyRef: EventHotKeyRef?
     private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
     private let defaults = UserDefaults.standard
     private var bag = Set<AnyCancellable>()
@@ -32,6 +34,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     func applicationDidFinishLaunching(_: Notification) {
         overlay.$enabled.sink { [weak self] on in self?.updateIcon(on) }.store(in: &bag)
+        prefs.$iconStyle.dropFirst().sink { [weak self] _ in self?.updateIcon(self?.overlay.enabled ?? false) }.store(in: &bag)
+        prefs.$hotkey.dropFirst().sink { [weak self] _ in self?.registerHotKey() }.store(in: &bag)
         overlay.enabled = defaults.object(forKey: "enabled") as? Bool ?? true
         // Content grows/shrinks (pins, tip): keep the panel fitted.
         overlay.objectWillChange
@@ -63,7 +67,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private func makeSettingsWindow() -> NSWindow {
         let w = NSWindow(contentRect: .zero, styleMask: [.titled, .closable, .miniaturizable], backing: .buffered, defer: false)
         w.title = "Focal"
-        w.contentViewController = NSHostingController(rootView: SettingsView(overlay: overlay))
+        w.contentViewController = NSHostingController(rootView: SettingsView(overlay: overlay, prefs: prefs))
         w.isReleasedWhenClosed = false
         w.delegate = self
         w.center()
@@ -202,52 +206,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         panel.setFrame(NSRect(x: x, y: y, width: size.width, height: size.height), display: true)
     }
 
-    // MARK: - Menu bar glyph: solid left half = sharp, dotted right half = blurred. Paused = dotted ring.
+    // MARK: - Menu bar icon
 
     private func updateIcon(_ on: Bool) {
-        item.button?.image = glyph(on: on)
+        item.button?.image = prefs.iconStyle.image(on: on)
         item.button?.toolTip = on ? "Focal is blurring. Click for options, ⌥-click to pause."
                                   : "Focal is paused. Click for options, ⌥-click to resume."
     }
 
-    private func glyph(on: Bool) -> NSImage {
-        let image = NSImage(size: NSSize(width: 18, height: 18), flipped: false) { bounds in
-            let r = bounds.insetBy(dx: 2, dy: 2)
-            let center = CGPoint(x: r.midX, y: r.midY)
-            NSColor.black.set()
-            let dots = NSBezierPath()
-            dots.appendArc(withCenter: center, radius: r.width / 2 - 0.8,
-                           startAngle: on ? -90 : 0, endAngle: on ? 90 : 360)
-            dots.lineWidth = 1.6
-            dots.lineCapStyle = .round
-            dots.setLineDash([0.1, 2.6], count: 2, phase: 0)
-            dots.stroke()
-            if on {
-                let half = NSBezierPath()
-                half.appendArc(withCenter: center, radius: r.width / 2, startAngle: 90, endAngle: 270)
-                half.close()
-                half.fill()
-            }
-            return true
-        }
-        image.isTemplate = true
-        image.accessibilityDescription = "Focal"
-        return image
-    }
+    // MARK: - Global hotkey (Carbon: works without Accessibility permission)
 
-    // MARK: - Global hotkey ⌃⌥⌘F (Carbon: works without Accessibility permission)
+    private var handlerInstalled = false
 
     private func registerHotKey() {
-        var spec = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
-        InstallEventHandler(GetApplicationEventTarget(), { _, _, _ in
-            AppDelegate.shared.toggle()
-            return noErr
-        }, 1, &spec, nil, nil)
-        var ref: EventHotKeyRef?
-        RegisterEventHotKey(
-            UInt32(kVK_ANSI_F), UInt32(cmdKey | optionKey | controlKey),
-            EventHotKeyID(signature: 0x464F_434C, id: 1), // "FOCL"
-            GetApplicationEventTarget(), 0, &ref
-        )
+        if !handlerInstalled {
+            var spec = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
+            InstallEventHandler(GetApplicationEventTarget(), { _, _, _ in
+                AppDelegate.shared.toggle()
+                return noErr
+            }, 1, &spec, nil, nil)
+            handlerInstalled = true
+        }
+        if let old = hotKeyRef { UnregisterEventHotKey(old); hotKeyRef = nil }
+        RegisterEventHotKey(prefs.hotkey.keyCode, prefs.hotkey.modifiers,
+                            EventHotKeyID(signature: 0x464F_434C, id: 1), // "FOCL"
+                            GetApplicationEventTarget(), 0, &hotKeyRef)
     }
 }
